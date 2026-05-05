@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>REFLEX PRO - Color Battle</title>
+    <style>
+        :root {
+            --bg: #0b0b0b;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --primary: #3498db;
+            --accent: #ff9f43;
+        }
+        body {
+            margin: 0; padding: 0; background: var(--bg);
+            color: white; font-family: 'Segoe UI', sans-serif;
+            overflow: hidden; height: 100vh; touch-action: manipulation;
+        }
+        #game-container { width: 100vw; height: 100vh; position: relative; }
+
+        /* হোম স্ক্রিন - পার্টিকেল ব্যাকগ্রাউন্ড */
+        #home-screen {
+            position: absolute; width: 100%; height: 100%;
+            background: radial-gradient(circle at 50% 20%, #1a2a6c, #000);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 200; text-align: center; overflow: hidden;
+        }
+        #home-screen::before {
+            content: ''; position: absolute; width: 200%; height: 200%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="10" cy="10" r="1" fill="%23ffffff22"/><circle cx="80" cy="30" r="0.5" fill="%23ffffff33"/><circle cx="50" cy="70" r="1.5" fill="%23ffffff11"/></svg>');
+            animation: float 20s linear infinite; opacity: 0.6;
+        }
+        @keyframes float { 0% {transform: translate(0,0);} 100% {transform: translate(-50%,-50%);} }
+
+        #home-title {
+            font-size: 3.8rem; margin-bottom: 30px; letter-spacing: 3px;
+            background: linear-gradient(90deg, #00FFFF, #FF00FF, #FFFF00);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            animation: pulse 2s ease-in-out infinite;
+            text-shadow: 0 0 20px rgba(255,255,255,0.3);
+        }
+        @keyframes pulse { 0%,100%{transform: scale(1);} 50%{transform: scale(1.05);} }
+
+        /* বেরঙের বাটন - প্রতিটা আলাদা */
+        .menu-btn {
+            width: 300px; padding: 18px; margin: 12px; font-size: 1.3rem;
+            cursor: pointer; border: none; border-radius: 18px;
+            color: white; font-weight: 900; letter-spacing: 1px;
+            transition: 0.3s; box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            position: relative; overflow: hidden; text-transform: uppercase;
+        }
+        .menu-btn:active { transform: scale(0.95); }
+        .menu-btn::after {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: 0.5s;
+        }
+        .menu-btn:hover::after { left: 100%; }
+
+        .btn-classic { background: linear-gradient(135deg, #00C9FF, #92FE9D); box-shadow: 0 0 20px #00C9FF88; }
+        .btn-speed { background: linear-gradient(135deg, #F7971E, #FFD200); box-shadow: 0 0 20px #F7971E88; }
+        .btn-focus { background: linear-gradient(135deg, #00F260, #0575E6); box-shadow: 0 0 20px #00F26088; }
+        .btn-ruler { background: linear-gradient(135deg, #DA22FF, #9733EE); box-shadow: 0 0 20px #DA22FF88; }
+
+        #back-btn {
+            position: absolute; top: 15px; left: 15px;
+            padding: 12px 24px; background: linear-gradient(135deg, #ff416c, #ff4b2b);
+            color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;
+            z-index: 150; box-shadow: 0 4px 15px rgba(255,65,108,0.4); display: none;
+        }
+
+        #ui-layer {
+            position: absolute; top: 15px; width: 100%;
+            display: flex; justify-content: space-evenly; pointer-events: none; z-index: 100;
+        }
+        .ui-box { 
+            background: rgba(255,255,255,0.08); padding: 10px 18px; border-radius: 12px; 
+            backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        #question-area {
+            position: absolute; top: 80px; width: 100%; text-align: center;
+            font-size: 1.5rem; font-weight: bold; display: none; z-index: 50;
+        }
+
+        .target     {
+            position: absolute; display: flex; justify-content: center; align-items: center;
+            font-weight: bold; border: 4px solid #fff;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); cursor: pointer;
+            user-select: none; touch-action: none; transition: 0.1s;
+        }
+        .target    :active { transform: scale(0.9); }
+        .reflex-target     { border-radius: 50%; }
+        .focus-target     { border-radius: 20px; width: 120px; height: 120px; }
+
+        .triple-kill-text {
+            position: absolute; top: 40%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem; font-weight: 900; color: var(--accent);
+            text-transform: uppercase; text-shadow: 0 0 15px red, 0 0 30px var(--accent);
+            pointer-events: none; z-index: 1000;
+            animation: ff_pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes ff_pop {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; }
+        }
+
+        .shake { animation: shakeAnim 0.3s linear; }
+        @keyframes shakeAnim {
+            0%, 100% { transform: translate(0, 0); }
+            25% { transform: translate(-10px, -10px); }
+            75% { transform: translate(10px, 10px); }
+        }
+
+        #result-screen {
+            display: none; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); text-align: center;
+            background: rgba(0,0,0,0.95); padding: 40px; border-radius: 30px;
+            z-index: 300; width: 85%; border: 2px solid var(--primary);
+            box-shadow: 0 0 40px rgba(52,152,219,0.5);
+        }
+
+        /* RULER DROP MODE STYLES - কালারফুল */
+        #ruler-container {
+            position: absolute; left: 50%; top: 100px;
+            transform: translateX(-50%);
+            width: 80px; height: 400px;
+            background: linear-gradient(to bottom, #e0e0e0, #bdc3c7, #95a5a6);
+            border: 3px solid #2c3e50; border-radius: 10px;
+            display: none; z-index: 60; box-shadow: 0 0 20px rgba(255,255,255,0.2);
+        }
+        .ruler-mark {
+            position: absolute; width: 100%; height: 2px; background: #2c3e50; left: 0;
+        }
+        .ruler-number {
+            position: absolute; right: 85px; font-size: 12px; color: #00FFFF; font-weight: bold;
+            text-shadow: 0 0 5px #00FFFF;
+        }
+        #catch-line {
+            position: absolute; left: 50%; transform: translateX(-50%);
+            width: 200px; height: 6px; 
+            background: linear-gradient(90deg, #e74c3c, #ff00ff);
+            box-shadow: 0 0 15px #e74c3c, 0 0 30px #ff00ff;
+            display: none; z-index: 70; border-radius: 3px;
+            animation: catchPulse 1s ease-in-out infinite;
+        }
+        @keyframes catchPulse { 0%,100%{opacity:1;} 50%{opacity:0.6;} }
+
+        #ruler-instruction {
+            position: absolute; bottom: 50px; width: 100%; text-align: center;
+            font-size: 1.2rem; font-weight: bold; display: none; z-index: 50;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+        #ruler-click-area {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 55; display: none;
+        }
+        .screen-flash {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; z-index: 999; pointer-events: none;
+            animation: flash 0.2s ease-out forwards;
+        }
+        @keyframes flash { 0%{opacity:0.8;} 100%{opacity:0;} }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <button id="back-btn" onpointerdown="playButtonSound(); showHome()">← BACK</button>
+
+    <div id="home-screen">
+        <h1 id="home-title">⚡ REFLEX PRO</h1>
+        <button class="menu-btn btn-classic" onpointerdown="playButtonSound(); initGame('classic')">🎯 CLASSIC MODE</button>
+        <button class="menu-btn btn-speed" onpointerdown="playButtonSound(); initGame('evolution')">🚀 SPEED EVOLUTION</button>
+        <button class="menu-btn btn-focus" onpointerdown="playButtonSound(); initGame('focus')">🧠 BRAIN FOCUS</button>
+        <button class="menu-btn btn-ruler" onpointerdown="playButtonSound(); initGame('ruler')">📏 RULER DROP TEST</button>
+    </div>
+
+    <div id="ui-layer">
+        <div class="ui-box" style="border-color:#00FFFF;">SCORE: <span id="score">0</span></div>
+        <div class="ui-box" style="border-color:#FF00FF;">TIME: <span id="live-timer">0</span>ms</div>
+        <div class="ui-box" style="border-color:#f1c40f">BEST: <span id="best-display">--</span></div>
+    </div>
+
+    <div id="question-area">Click text: <span id="target    -word" style="text-decoration: underline;"></span></div>
+
+    <!-- RULER DROP ELEMENTS -->
+    <div id="ruler-click-area"></div>
+    <div id="ruler-container"></div>
+    <div id="catch-line"></div>
+    <div id="ruler-instruction">স্কেল পড়া শুরু হলে একবার ট্যাপ করো!</div>
+
+    <div id="result-screen">
+        <h1 id="result-title">GAME OVER</h1>
+        <div id="final-stats"></div>
+        <button class="menu-btn btn-classic" onpointerdown="playButtonSound(); showHome()">MAIN MENU</button>
+    </div>
+</div>
+
+<script>
+    // --- Audio Initialisation ---
+    const clickSound = new Audio('A.mp3');
+    const buttonSound = new Audio('S.mp3');
+    const bgMusic = new Audio('Be.mp3');
+    bgMusic.volume = 0.25;
+    
+    bgMusic.addEventListener('ended', function() {
+        this.currentTime = 0;
+        this.play().catch(e => {});
+    });
+
+    function playBGM() {
+        if (bgMusic.paused) {
+            bgMusic.currentTime = 0;
+            bgMusic.play().catch(e => console.log("BG music failed:", e));
+        }
+    }
+
+    function stopBGM() {
+        bgMusic.pause();
+        bgMusic.currentTime = 0;
+    }
+
+    function playButtonSound() {
+        buttonSound.currentTime = 0;
+        buttonSound.play().catch(e => console.log("Audio play failed:", e));
+    }
+
+    function screenFlash() {
+        const flash = document.createElement('div');
+        flash.className = 'screen-flash';
+        document.body.appendChild(flash);
+        setTimeout(() => flash.remove(), 200);
+    }
+
+    let score = 0, gameActive = false, startTime, timerInterval, target    Timeout;
+    let currentMode = 'classic', baseSpeed = 1500, bestTime = Infinity;
+    let comboCount = 0;
+    let lastClickTime = 0;
+
+    // Ruler mode variables
+    let rulerDropping = false, rulerStartTime = 0, rulerY = 0, rulerAnimation;
+    let hasClicked = false;
+
+    const colors = [
+        {name: 'RED', code: '#e74c3c'}, {name: 'GREEN', code: '#2ecc71'},
+        {name: 'BLUE', code: '#3498db'}, {name: 'YELLOW', code: '#f1c40f'}
+    ];
+
+    const scoreEl = document.getElementById('score');
+    const timerEl = document.getElementById('live-timer');
+    const bestEl = document.getElementById('best-display');
+    const resultScreen = document.getElementById('result-screen');
+    const homeScreen = document.getElementById('home-screen');
+    const backBtn = document.getElementById('back-btn');
+    const questionArea = document.getElementById('question-area');
+    const target    WordEl = document.getElementById('target    -word');
+    const rulerContainer = document.getElementById('ruler-container');
+    const catchLine = document.getElementById('catch-line');
+    const rulerInstruction = document.getElementById('ruler-instruction');
+    const rulerClickArea = document.getElementById('ruler-click-area');
+
+    function showHome() {
+        gameActive = false;
+        resultScreen.style.display = 'none';
+        homeScreen.style.display = 'flex';
+        questionArea.style.display = 'none';
+        rulerContainer.style.display = 'none';
+        catchLine.style.display = 'none';
+        rulerInstruction.style.display = 'none';
+        rulerClickArea.style.display = 'none';
+        backBtn.style.display = 'none';
+        clearOldTargets();
+        cancelAnimationFrame(rulerAnimation);
+        rulerClickArea.onpointerdown = null;
+        stopBGM();
+    }
+
+    function initGame(mode) {
+        currentMode = mode;
+        score = 0; baseSpeed = 1500; bestTime = Infinity;
+        comboCount = 0; lastClickTime = 0;
+        gameActive = true;
+        homeScreen.style.display = 'none';
+        resultScreen.style.display = 'none';
+        backBtn.style.display = 'block';
+        scoreEl.innerText = "0";
+        timerEl.innerText = "0";
+        bestEl.innerText = "--";
+        questionArea.style.display = (mode === 'focus')? 'block' : 'none';
+
+        playBGM();
+
+        if (mode === 'ruler') {
+            initRulerDrop();
+        } else {
+            spawnTarget();
+        }
+    }
+
+    function clearOldTargets() {
+        document.querySelectorAll('.target    ').forEach(t => t.remove());
+        clearInterval(timerInterval);
+        clearTimeout(target    Timeout);
+    }
+
+    function spawnTarget() {
+        if (!gameActive) return;
+        clearOldTargets();
+        if (currentMode === 'focus') createFocusChallenge();
+        else createReflexChallenge();
+    }
+
+    // --- RULER DROP MODE ---
+    function initRulerDrop() {
+        rulerContainer.style.display = 'block';
+        catchLine.style.display = 'block';
+        rulerInstruction.style.display = 'block';
+        rulerClickArea.style.display = 'block';
+        catchLine.style.top = '450px';
+        hasClicked = false;
+
+        rulerContainer.innerHTML = '';
+        for(let i = 0; i <= 30; i++) {
+            const mark = document.createElement('div');
+            mark.className = 'ruler-mark';
+            mark.style.top = (i * 13.33) + 'px';
+            if(i % 5 === 0) {
+                mark.style.height = '3px';
+                mark.style.background = '#000';
+                const num = document.createElement('div');
+                num.className = 'ruler-number';
+                num.style.top = (i * 13.33 - 6) + 'px';
+                num.innerText = i + 'cm';
+                rulerContainer.appendChild(num);
+            }
+            rulerContainer.appendChild(mark);
+        }
+
+        rulerY = 0;
+        rulerContainer.style.top = '100px';
+        rulerInstruction.innerText = 'রেডি হও... একবারই ক্লিক করতে পারবে!';
+
+        setTimeout(() => {
+            if(!gameActive) return;
+            rulerDropping = true;
+            rulerStartTime = performance.now();
+            rulerInstruction.innerText = 'এখনই ট্যাপ করো! শুধু একবার!';
+            dropRuler();
+        }, Math.random() * 2000 + 1000);
+
+        rulerClickArea.onpointerdown = (e) => {
+            if(currentMode === 'ruler' && gameActive) {
+                handleRulerClick();
+            }
+        };
+    }
+
+    function handleRulerClick() {
+        if(hasClicked) {
+            playButtonSound();
+            screenFlash();
+            endRulerGame(false, 0, 0, "বারবার ক্লিক করছো! একবারই ক্লিক করতে পারবে");
+            return;
+        }
+
+        hasClicked = true;
+
+        if(!rulerDropping) {
+            playButtonSound();
+            screenFlash();
+            endRulerGame(false, 0, 0, "আগেই ক্লিক করে ফেলছো! স্কেল পড়ার জন্য অপেক্ষা করো");
+            return;
+        }
+
+        catchRuler();
+    }
+
+    function dropRuler() {
+        if (!rulerDropping ||!gameActive) return;
+
+        const elapsed = performance.now() - rulerStartTime;
+        rulerY = elapsed * 0.5;
+
+        if(rulerY > 400) {
+            rulerY = 400;
+            endRulerGame(false, 0, 0, "ধরতে পারলে না! স্কেল পুরা পড়ে গেছে");
+            return;
+        }
+
+        rulerContainer.style.top = (100 + rulerY) + 'px';
+        timerEl.innerText = Math.floor(elapsed);
+
+        rulerAnimation = requestAnimationFrame(dropRuler);
+    }
+
+    function catchRuler() {
+        if(!rulerDropping) return;
+
+        playButtonSound();
+        clickSound.currentTime = 0;
+        clickSound.play().catch(e => {});
+        screenFlash();
+
+        rulerDropping = false;
+        cancelAnimationFrame(rulerAnimation);
+
+        const reactionTime = Math.floor(performance.now() - rulerStartTime);
+        const distanceCm = (rulerY / 13.33).toFixed(1);
+
+        timerEl.innerText = reactionTime;
+        if(reactionTime < bestTime) {
+            bestTime = reactionTime;
+            bestEl.innerText = reactionTime + "ms";
+        }
+
+        endRulerGame(true, reactionTime, distanceCm);
+    }
+
+    function endRulerGame(success, time, distance, customMsg) {
+        gameActive = false;
+        rulerDropping = false;
+        rulerClickArea.onpointerdown = null;
+
+        resultScreen.style.display = 'block';
+        if(success) {
+            document.getElementById('result-title').innerText = 'দারুণ রিফ্লেক্স!';
+            document.getElementById('final-stats').innerHTML = `
+                <p>রিয়েকশন টাইম: <span style="font-size:2rem; color:#2ecc71">${time}ms</span></p>
+                <p>স্কেল পড়েছে: <span style="font-size:1.5rem; color:#3498db">${distance}cm</span></p>
+                <p>বেস্ট টাইম: ${bestTime}ms</p>
+                <p style="margin-top:15px; font-size:0.9rem">${getReactionComment(time)}</p>
+            `;
+        } else {
+            document.getElementById('result-title').innerText = 'ভুল ক্লিক!';
+            document.getElementById('final-stats').innerHTML = `
+                <p style="color:#e74c3c; font-size:1.2rem">${customMsg || 'ধরতে পারলে না!'}</p>
+                <p style="margin-top:15px">নিয়ম: স্কেল পড়া শুরু হলে একবারই ক্লিক করতে পারবে</p>
+            `;
+        }
+    }
+
+    function getReactionComment(ms) {
+        if(ms < 200) return '⚡ অমানবিক! প্রো গেমার লেভেল';
+        if(ms < 250) return '🔥 দুর্দান্ত! খুবই ফাস্ট';
+        if(ms < 300) return '👍 ভালো! এভারেজের উপরে';
+        if(ms < 400) return '😊 ঠিক আছে, আরো প্র্যাকটিস করো';
+        return '🐌 একটু স্লো, আবার ট্রাই করো';
+    }
+
+    // --- OLD GAME MODES ---
+    function handleCorrectClick() {
+        clickSound.currentTime = 0;
+        clickSound.play().catch(e => console.log("Audio play failed:", e));
+
+        const now = performance.now();
+        if (now - lastClickTime <= 500) {
+            comboCount++;
+        } else {
+            comboCount = 1;
+        }
+        lastClickTime = now;
+
+        if (comboCount === 3) {
+            showTripleKillEffect();
+            score += 5;
+            comboCount = 0;
+        }
+
+        score++;
+        scoreEl.innerText = score;
+        if (currentMode === 'evolution') baseSpeed = Math.max(400, 1500 - (score * 30));
+        spawnTarget();
+    }
+
+    function showTripleKillEffect() {
+        document.body.classList.add('shake');
+        setTimeout(() => document.body.classList.remove('shake'), 300);
+
+        const text = document.createElement('div');
+        text.className = 'triple-kill-text';
+        text.innerText = 'TRIPLE KILL!';
+        document.body.appendChild(text);
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        setTimeout(() => text.remove(), 600);
+    }
+
+    function createFocusChallenge() {
+        const correctIdx = Math.floor(Math.random() * colors.length);
+        const wrongIdx = (correctIdx + 1) % colors.length;
+        target    WordEl.innerText = colors[correctIdx].name;
+        target    WordEl.style.color = "white";
+
+        const options = [
+            { text: colors[correctIdx].name, color: colors[wrongIdx].code, correct: true },
+            { text: colors[wrongIdx].name, color: colors[correctIdx].code, correct: false }
+        ].sort(() => Math.random() - 0.5);
+
+        options.forEach((opt, index) => {
+            const btn = document.createElement('div');
+            btn.className = 'target     focus-target    ';
+            btn.style.backgroundColor = opt.color;
+            btn.innerText = opt.text;
+            btn.style.top = '45%';
+            btn.style.left = index === 0? '10%' : '55%';
+            btn.onpointerdown = () => {
+                playButtonSound();
+                screenFlash();
+                if(opt.correct) handleCorrectClick();
+                else endGame("WRONG CHOICE!");
+            };
+            document.getElementById('game-container').appendChild(btn);
+        });
+        target    Timeout = setTimeout(() => { if(gameActive) endGame("TIME OUT!"); }, 3000);
+    }
+
+    function createReflexChallenge() {
+        const btn = document.createElement('div');
+        btn.className = 'target     reflex-target    ';
+        const size = Math.floor(Math.random() * 40) + 60;
+        btn.style.width = size + 'px'; btn.style.height = size + 'px';
+        btn.style.fontSize = (size/4) + 'px';
+
+        const isGreen = Math.random() < 0.3;
+        btn.innerText = isGreen? "HIT" : "WAIT";
+        btn.style.backgroundColor = isGreen? '#2ecc71' : '#e74c3c';
+
+        const x = Math.random() * (window.innerWidth - size - 20) + 10;
+        const y = Math.random() * (window.innerHeight - size - 180) + 100;
+        btn.style.left = x + 'px'; btn.style.top = y + 'px';
+        document.getElementById('game-container').appendChild(btn);
+
+        if (isGreen) {
+            startTime = performance.now();
+            timerInterval = setInterval(() => { timerEl.innerText = Math.floor(performance.now() - startTime); }, 10);
+        }
+
+        btn.onpointerdown = () => {
+            playButtonSound();
+            screenFlash();
+            if (isGreen) {
+                const rt = Math.floor(performance.now() - startTime);
+                timerEl.innerText = rt;
+                if (rt < bestTime) { bestTime = rt; bestEl.innerText = rt + "ms"; }
+                handleCorrectClick();
+            } else { endGame("CLICKED RED!"); }
+        };
+
+        target    Timeout = setTimeout(() => {
+            if (isGreen && gameActive) endGame("TOO SLOW!");
+            else if (gameActive) spawnTarget();
+        }, baseSpeed);
+    }
+
+    function endGame(reason) {
+        gameActive = false;
+        clearOldTargets();
+        resultScreen.style.display = 'block';
+        document.getElementById('result-title').innerText = reason;
+        document.getElementById('final-stats').innerHTML = `
+            <p>Score: <span style="font-size:2rem; color:#3498db">${score}</span></p>
+            <p>Best Reaction: ${bestTime === Infinity? '--' : bestTime + 'ms'}</p>
+        `;
+    }
+</script>
+
+</body>
+</html>
