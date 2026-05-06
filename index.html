@@ -535,13 +535,11 @@
         btn.style.left = x + 'px'; btn.style.top = y + 'px';
         document.getElementById('game-container').appendChild(btn);
 
-        if (isGreen) {
-            startTime = performance.now();
+        i           startTime = performance.now();
             timerInterval = setInterval(() => { timerEl.innerText = Math.floor(performance.now() - startTime); }, 10);
         }
 
         btn.onpointerdown = () => {
-            playButtonSound();
             screenFlash();
             if (isGreen) {
                 const rt = Math.floor(performance.now() - startTime);
@@ -554,8 +552,55 @@
         target    Timeout = setTimeout(() => {
             if (isGreen && gameActive) endGame("TOO SLOW!");
             else if (gameActive) spawnTarget();
-        }, baseSpeed);
-    }
+    let score = 0;
+let bestTime = Infinity;
+let gameActive = false;
+let startTime = 0;
+let timerInterval;
+let baseSpeed = 2000;
+let targetTimeout;
+
+const timerEl = document.getElementById('timer');
+const bestEl = document.getElementById('best');
+const resultScreen = document.getElementById('result-screen');
+
+function startClassicMode() {
+    document.getElementById('home-screen').style.display = 'none';
+    document.getElementById('game-container').style.display = 'block';
+    score = 0; bestTime = Infinity; gameActive = true; baseSpeed = 2000;
+    spawnTarget();
+}
+
+function startSpeedEvolution() {
+    document.getElementById('home-screen').style.display = 'none';
+    document.getElementById('game-container').style.display = 'block';
+    score = 0; bestTime = Infinity; gameActive = true; baseSpeed = 1000;
+    spawnTarget();
+}
+
+function startBrainFocus() {
+    alert('Brain Focus Mode Coming Soon!');
+}
+
+function startRulerDrop() {
+    alert('Ruler Drop Test Coming Soon!');
+}
+
+function playButtonSound() {}
+function screenFlash() {}
+function handleCorrectClick() { 
+    score++; 
+    document.getElementById('score').innerText = score;
+    spawnTarget(); 
+}
+function clearOldTargets() { 
+    document.querySelectorAll('.target-btn').forEach(btn => btn.remove());
+}
+function spawnTarget() {
+    if (!gameActive) return;
+    clearOldTargets();
+    createReflexChallenge();
+}
 
     function endGame(reason) {
         gameActive = false;
@@ -567,7 +612,7 @@
             <p>Best Reaction: ${bestTime === Infinity? '--' : bestTime + 'ms'}</p>
         `;
     }
-</script>
-
-</body>
+</scripe();
+}/body>
 </html>
+l
